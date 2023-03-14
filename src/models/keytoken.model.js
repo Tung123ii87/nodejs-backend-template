@@ -20,9 +20,13 @@ var keyTokenSchema = new Schema({
         type: String,
         required: true,
     },
-    refreshToken: {
+    refreshTokensUsed: { //Nhung RT da dc su dung
         type: Array,
         default: [],
+    },
+    refreshToken: {
+        type: String,
+        required: true
     }
 }, {
     collection: COLLECTION_NAME,
