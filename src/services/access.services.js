@@ -4,9 +4,9 @@ const shopModel = require('../models/shop.model')
 const bcrypt = require('bcrypt')
 const crypto = require('node:crypto')
 const KeyTokenService = require('./keyToken.service')
-const { createTokenPair } = require('../auth/authUtils')
+const { createTokenPair, verifyJWT } = require('../auth/authUtils')
 const { getInfoData } = require('../utils')
-const { BadRequestError, ConflictRequestError, AuthFailureError } = require('../core/error.response')
+const { BadRequestError, ConflictRequestError, AuthFailureError, ForbiddenError } = require('../core/error.response')
 const { findByEmail } = require('./shop.service')
 
 const RoleShop = {
@@ -17,6 +17,60 @@ const RoleShop = {
 }
 
 class AccessServices {
+
+    /*
+    check this token used?
+    */
+    static handlerRefreshToken = async (refreshToken) => {
+        //Check xem token da dc su dung chua
+        const foundToken = await KeyTokenService.FindByRefreshTokenUsed(refreshToken)
+        //Neu co
+        if (foundToken) {
+            //decode xem la ai co trong he thong ko
+            const { userId, email } = await verifyJWT(refreshToken, foundToken.privateKey)
+            console.log({ userId, email })
+
+            //Xoa tat ca token trong keyStore
+            await KeyTokenService.deleteKeyById(userId)
+            throw new ForbiddenError('Something wrong happend !! pls relogin')
+        }
+
+        //Neu ko co
+        const hodlerToken = await KeyTokenService.FindByRefreshToken(refreshToken)
+        if (!hodlerToken) throw new AuthFailureError('Shop not register')
+
+        //VerifyToken
+        const { userId, email } = await verifyJWT(refreshToken, hodlerToken.privateKey)
+        console.log('[2]---', { userId, email })
+
+        //check userId
+        const foundShop = await findByEmail({ email })
+        if (!foundShop) throw new AuthFailureError('Shop not register')
+        //create 1 cap moi
+        const tokens = await createTokenPair({ userId, email }, hodlerToken.publicKey, hodlerToken.privateKey)
+        //update token
+        await hodlerToken.update({
+            $set: {
+                refreshToken: tokens.refreshToken
+            },
+            $addToSet: {
+                refreshTokensUsed: refreshToken //da dc suy dung de lay token moi
+            }
+        })
+
+        return {
+            user: { userId, email },
+            tokens
+        }
+    }
+
+
+    static logout = async (keyStore) => {
+        const delKey = await KeyTokenService.removeKeyById(keyStore._id)
+        console.log({ delKey })
+        return delKey
+    }
+
     /**
         * 1-Check email in dbs
         * 2-Match password
