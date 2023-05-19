@@ -27,9 +27,16 @@ app.use('/', require('./routes/shop'))
 //handling error
 
 app.use((req, res, next) => {
-    const error = new Error('Not Found')
-    error.status = 404
-    next(error)
+    const statusCode = error.status || 404
+    return res.status(statusCode).json({
+        status: 'error',
+        code: statusCode,
+        stack: error.stack,
+        message: error.message || 'Not Found'
+    })
+    // const error = new Error('Not Found')
+    // error.status = 404
+    // next(error)
 })
 
 app.use((error, req, res, next) => {
