@@ -15,7 +15,7 @@ var discountSchema = new Schema({
     discount_end_date: { type: Date, required: true },
     discount_max_uses: { type: Number, required: true },// So luong discount duoc ap dung
     discount_uses_count: { type: Number, required: true }, // So luong discount da su dung 
-    discount_uses_used: { type: Array, default: [] }, // ai da su dung
+    discount_users_used: { type: Array, default: [] }, // ai da su dung
     discount_max_uses_per_user: { type: Number, required: true }, // so luong cho phep toi da su dung
     discount_min_order_value: { type: Number, required: true },
     discount_max_value: { type: Number, required: true },
